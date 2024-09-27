@@ -8,18 +8,19 @@ from termcolor import colored, cprint
 # Steps:
 # 1. Read a dataset from excel, csv file.
 # 2. Check how many NaN values are there in the dataset.
-# 3. Simplest way is the delete those records from the dataset
-# 4. Incase any columns has too much variance, do log normalization of 
+# 3. Simplest way is the delete those records from the dataset.
+# 4. Split the data into feature data and target data.
+# 5. Split the data info training and test data - Use random state and 
+#    stratify for better result
+# 6. Incase any columns has too much variance, do log normalization of 
 #   that column. It is mainly representing the column in logerithmic 
 #   term.
-# 5. Incase column values are too big, we should scale down the values too.
+# 7. Incase column values are too big, we should scale down the values too.
 #   Or if different features have different unit, then scaling helps.
-# 6. Split the data into feature data and target data
-# 7. Split the data info training and test data - Use random state and stratify for better result
 # 8. Fit the training data into the model.
 # 9. Now use the test data to find the scores of the model.
 #################################################################
-print (colored("######### Find the BMI for all dogs and add in the dataset ########", "cyan", attrs=['bold']))
+
 print (colored("########################", "cyan", attrs=['bold']))
 print (colored("Read data from json file", "cyan", attrs=['bold']))
 print (colored("########################", "cyan", attrs=['bold']))
@@ -49,7 +50,7 @@ print (colored("Drop the data which is having NULL Value  ", "cyan", attrs=['bol
 print (colored("##########################################", "cyan", attrs=['bold']))
 print (colored("########## Original Data #################", "cyan", attrs=['bold']))
 print (ufo_data.info())
-print (colored("########## Modified Data #################", "cyan", attrs=['bold']))
+print (colored("## After dropping null value from Data ###", "cyan", attrs=['bold']))
 modified_ufo_data = ufo_data.dropna()
 print (modified_ufo_data.info())
 
@@ -117,14 +118,14 @@ print (volunteer.info())
 print (volunteer.dtypes)
 
 print (colored("#######################################################", "red", attrs=['bold']))
-print (colored("## Drop the whole row is  category_desc value is NaN ##", "red", attrs=['bold']))
+print (colored("## Drop the whole row if category_desc value is NaN ##", "red", attrs=['bold']))
 print (colored("#######################################################", "red", attrs=['bold']))
-print (volunteer["category_desc"].value_counts())
+volunteer.dropna(subset=["category_desc"],inplace=True)
 
 print (colored("###########################################################", "red", attrs=['bold']))
 print (colored("## Find the different catagories of value in this cloumn ##", "red", attrs=['bold']))
 print (colored("###########################################################", "red", attrs=['bold']))
-volunteer.dropna(subset=["category_desc"],inplace=True)
+print (volunteer["category_desc"].value_counts())
 
 print (colored("########################################################", "red", attrs=['bold']))
 print (colored("## Split the data between target and feature variable ##", "red", attrs=['bold']))
@@ -188,21 +189,34 @@ knn = KNeighborsClassifier()
 knn.fit(X_train,np.ravel(y_train))
 print(colored("Without log normalization, model score {}". format(knn.score(X_test,y_test)), "red", attrs=['bold']))
 
-print (colored("###########################################", "blue", attrs=['bold']))
-print (colored("## Find the variance of feature variable ##", "blue", attrs=['bold']))
-print (colored("###########################################", "blue", attrs=['bold']))
-print (X.var())
-
-print (colored("#############################", "blue", attrs=['bold']))
-print (colored("## After log normalization ##", "blue", attrs=['bold']))
-print (colored("#############################", "blue", attrs=['bold']))
-X["Proline"] = np.log(X["Proline"])
-print (X.head())
-
 print (colored("####################################################", "blue", attrs=['bold']))
 print (colored("## Split the data between train and test variable ##", "blue", attrs=['bold']))
 print (colored("####################################################", "blue", attrs=['bold']))
 X_train, X_test, y_train, y_test = train_test_split(X,y, random_state=42, stratify=y)
+
+print (colored("###########################################", "blue", attrs=['bold']))
+print (colored("## Find the variance of feature variable ##", "blue", attrs=['bold']))
+print (colored("###########################################", "blue", attrs=['bold']))
+print (X_train.var())
+
+print (colored("#############################", "blue", attrs=['bold']))
+print (colored("## After log normalization ##", "blue", attrs=['bold']))
+print (colored("#############################", "blue", attrs=['bold']))
+X_train["Proline"] = np.log(X_train["Proline"])
+X_train["Magnesium"] = np.log(X_train["Magnesium"])
+print (X_train.head())
+
+X_test["Proline"] = np.log(X_test["Proline"])
+X_test["Magnesium"] = np.log(X_test["Magnesium"])
+print (X_test.head())
+
+print (colored("###########################################################", "blue", attrs=['bold']))
+print (colored("## After log normalization, test and train data variance ##", "blue", attrs=['bold']))
+print (colored("###########################################################", "blue", attrs=['bold']))
+print ("Train data")
+print (X_train.var())
+print ("Test data")
+print (X_test.var())
 
 print (colored("####################################", "blue", attrs=['bold']))
 print (colored("## Instantiate the KNN model      ##", "blue", attrs=['bold']))
@@ -211,7 +225,10 @@ print (colored("## Find the score from that model ##", "blue", attrs=['bold']))
 print (colored("####################################", "blue", attrs=['bold']))
 knn = KNeighborsClassifier()
 knn.fit(X_train,np.ravel(y_train))
-print(colored("Without log normalization, model score {}". format(knn.score(X_test,y_test)), "red", attrs=['bold']))
+print(colored("With log normalization, model score {}". format(knn.score(X_test,y_test)), "red", attrs=['bold']))
+y_pred = knn.predict(X_test)
+print (y_pred)
+print (y_test['Type'].values)
 
 print (colored("############################################", "blue", attrs=['bold']))
 print (colored("## Find standard deviation of all columns ##", "blue", attrs=['bold']))
@@ -230,7 +247,44 @@ wine_scaled = pd.DataFrame(scalar.fit_transform(wine_subset), columns=wine_subse
 print (wine_scaled)
 
 print (colored("##################################", "blue", attrs=['bold']))
-print (colored("## Variance after sscaling data ##", "blue", attrs=['bold']))
+print (colored("## Variance after scaling data ##", "blue", attrs=['bold']))
 print (colored("##################################", "blue", attrs=['bold']))
 print (wine_scaled.var())
 
+print (colored("##############################################", "blue", attrs=['bold']))
+print (colored("## KNN Model after scaling and normaliztion ##", "blue", attrs=['bold']))
+print (colored("##############################################", "blue", attrs=['bold']))
+print ("\n\n")
+X = wine.drop(["Type"],axis=1)
+y = wine[["Type"]]
+print (colored("## Feature variable ##", "blue", attrs=['bold']))
+print (X)
+print (colored("## Target variable ##", "blue", attrs=['bold']))
+print (y)
+X_train, X_test, y_train, y_test = train_test_split(X,y, random_state=42, stratify=y)
+print (colored("## Variance of feature variables ##", "blue", attrs=['bold']))
+print (X_train.var())
+X_train["Proline"] = np.log(X_train["Proline"])
+X_train["Magnesium"] = np.log(X_train["Magnesium"])
+print (colored("## Variance of training data after normalization ##", "blue", attrs=['bold']))
+print (X_train.head())
+
+X_test["Proline"] = np.log(X_test["Proline"])
+X_test["Magnesium"] = np.log(X_test["Magnesium"])
+print (colored("## Variance of test data after normalization ##", "blue", attrs=['bold']))
+
+print (X_test.head())
+scalar = StandardScaler()
+X_train_scaled = scalar.fit_transform(X_train)
+X_test_scaled = scalar.transform(X_test)
+knn = KNeighborsClassifier()
+knn.fit(X_train_scaled,np.ravel(y_train))
+
+print(colored("## With log normalization and scaling, model score {} ##". format(knn.score(X_test_scaled,y_test)), "red", attrs=['bold']))
+y_pred = knn.predict(X_test_scaled)
+
+print(colored("## Predicted target variable values ##", "red", attrs=['bold']))
+print (y_pred)
+
+print(colored("## Original target variable values  ##", "red", attrs=['bold']))
+print (y_test['Type'].values)
